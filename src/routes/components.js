@@ -73,6 +73,7 @@ const componentToDbRecord = (component) => {
 // GET /api/components - List all components with optional filters
 router.get('/', async (req, res, next) => {
     try {
+        console.log('[Components][GET] Buscando componentes com filtros:', req.query);
         let query = supabase.from('componentes').select('*').order('criado_em', { ascending: false });
 
         // Filtering logic
@@ -90,6 +91,7 @@ router.get('/', async (req, res, next) => {
         const { data, error } = await query;
         if (error) throw error;
 
+        console.log(`[Components][GET] Encontrados ${data.length} componentes.`);
         res.json(data.map(dbRecordToComponent));
     } catch (error) {
         next(error);
@@ -99,6 +101,7 @@ router.get('/', async (req, res, next) => {
 // POST /api/components - Create a new component
 router.post('/', async (req, res, next) => {
     try {
+        console.log('[Components][POST] Criando novo componente');
         const componentData = req.body;
         console.warn('[Backend] Received request to create new component.');
 
@@ -151,6 +154,7 @@ router.post('/', async (req, res, next) => {
 // PUT /api/components/:id - Update an existing component
 router.put('/:id', async (req, res, next) => {
     try {
+        console.log(`[Components][PUT] Atualizando componente ID: ${req.params.id}`);
         const { id } = req.params;
         const componentData = req.body;
         const dbRecord = componentToDbRecord(componentData);
@@ -163,7 +167,8 @@ router.put('/:id', async (req, res, next) => {
             .single();
             
         if (error) throw error;
-        
+
+        console.log(`[Components][PUT] Componente atualizado ID: ${data.id}`);
         res.json(dbRecordToComponent(data));
     } catch (error) {
         next(error);
@@ -173,6 +178,7 @@ router.put('/:id', async (req, res, next) => {
 // DELETE /api/components/:id - Delete a component
 router.delete('/:id', async (req, res, next) => {
     try {
+        console.log(`[Components][DELETE] Excluindo componente ID: ${req.params.id}`);
         const { id } = req.params;
         const { error } = await supabase.from('componentes').delete().match({ id });
 
