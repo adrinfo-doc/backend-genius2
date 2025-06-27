@@ -2,25 +2,24 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import componentRoutes from './routes/components.js';
+import serverless from 'serverless-http';
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors()); // Allow requests from the frontend
-app.use(express.json({ limit: '10mb' })); // To parse JSON bodies, increase limit for code strings
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
 
-// API Routes
 app.use('/api/components', componentRoutes);
 
-// Basic error handler
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).send('Something broke!');
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
 });
 
-app.listen(port, () => {
-    console.log(`Backend server is running on http://localhost:${port}`);
-});
+// NÃO USE app.listen()
+
+// Exporte app e handler serverless:
+export { app };
+export const handler = serverless(app);
