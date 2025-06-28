@@ -3,39 +3,64 @@ import { createClient } from '@supabase/supabase-js';
 
 const router = express.Router();
 
+// Verifica as variáveis de ambiente
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('❌ SUPABASE_URL ou SUPABASE_SERVICE_KEY não definidos no ambiente.');
+}
+
 const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Função utilitária para log com hora
+const log = (...args) => {
+  console.log(`[${new Date().toISOString()}]`, ...args);
+};
 
 router.post('/', async (req, res) => {
   try {
-    console.log('[Components][POST] Dados recebidos:', req.body);
+    log('[Components][POST] Dados recebidos:', req.body);
 
-    const data = {
-      nome: req.body.nome || 'sem nome',
-      grupo: req.body.grupo || 'default',
-      descricao: req.body.descricao || '',
-      tipo: req.body.tipo || 'demo',
-      tags: req.body.tags || [],
-      html: req.body.html || '',
-      css: req.body.css || '',
-      js: req.body.js || '',
-      favorito: req.body.favorito || false,
-    };
+    const {
+      nome = 'sem nome',
+      grupo = 'default',
+      descricao = '',
+      tipo = 'demo',
+      tags = [],
+      html = '',
+      css = '',
+      js = '',
+      favorito = false
+    } = req.body || {};
 
-    console.log('[Components][POST] Dados para inserir:', data);
+    const data = { nome, grupo, descricao, tipo, tags, html, css, js, favorito };
 
-    const { error } = await supabase.from('components').insert([data]);
+    log('[Components][POST] Dados para inserir:', data);
+
+    const { data: inserted, error } = await supabase.from('components').insert([data]).select();
 
     if (error) {
-      console.error('[Supabase][Erro ao inserir]:', error);
-      return res.status(500).json({ error: 'Erro ao inserir no banco', details: error.message });
+      log('[Supabase][Erro ao inserir]:', JSON.stringify(error, null, 2));
+      return res.status(500).json({
+        error: 'Erro ao inserir no banco',
+        details: error.message || error
+      });
     }
 
-    res.status(201).json({ message: 'Componente criado com sucesso!' });
+    log('[Supabase][Sucesso] ID do novo componente:', inserted?.[0]?.id || 'Desconhecido');
+
+    res.status(201).json({
+      message: 'Componente criado com sucesso!',
+      id: inserted?.[0]?.id || null
+    });
+
   } catch (err) {
-    console.error('[Components][POST] Erro:', err);
-    res.status(500).json({ error: 'Erro interno no servidor', message: err.message });
+    log('[Components][POST] Erro inesperado:', err);
+    res.status(500).json({
+      error: 'Erro interno no servidor',
+      message: err.message
+    });
   }
 });
 
