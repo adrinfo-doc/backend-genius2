@@ -38,7 +38,7 @@ router.post('/', async (req, res) => {
 
     log('[Components][POST] Dados para inserir:', data);
 
-    const { data: inserted, error } = await supabase.from('components').insert([data]).select();
+    const { data: inserted, error } = await supabase.from('componentes').insert([data]).select();
 
     if (error) {
       log('[Supabase][Erro ao inserir]:', JSON.stringify(error, null, 2));
