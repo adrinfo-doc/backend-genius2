@@ -2,7 +2,6 @@
   "name": "sitegenius-backend",
   "version": "1.0.0",
   "description": "Backend service for SiteGenius",
-  "main": "src/index.js",
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
