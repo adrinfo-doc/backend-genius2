@@ -28,6 +28,10 @@ app.get('/debug', (req, res) => {
   res.status(200).json({ msg: 'Debug route funcionando' });
 });
 
+app.get('/', (req, res) => {
+  res.json({ msg: "API raiz funcionando" });
+});
+
 app.get('/components/test', (req, res) => {
   res.json({ message: 'Rota /components/test funcionando!' });
 });
