@@ -3,8 +3,15 @@ console.log('api/components.js carregado');
 import express from 'express';
 import serverless from 'serverless-http';
 import router from './src/routes/components.js'; // Import estático correto
+import cors from 'cors';
+
+
 
 const app = express();
+
+app.use(cors({
+  origin: 'https://4wpbqj0ajxceczdvqbi6p7gl1t2uzvippizlgy5q064lxlt82l-h775241406.scf.usercontent.goog'
+}));
 
 // Middlewares padrão
 app.use(express.json());
