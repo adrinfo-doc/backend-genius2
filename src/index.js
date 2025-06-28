@@ -23,7 +23,7 @@ app.use('/components', (req, res, next) => {
   next();
 });
 
-app.use('/components', componentRoutes);
+app.use(componentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
