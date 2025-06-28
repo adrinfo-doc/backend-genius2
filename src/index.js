@@ -29,7 +29,7 @@ app.get('/debug', (req, res) => {
 });
 
 
-app.use(componentRoutes);
+app.use('/components', componentRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
