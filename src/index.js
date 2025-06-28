@@ -6,10 +6,17 @@ import serverless from 'serverless-http';
 
 dotenv.config();
 
+console.log("🚀 Express app is starting...");
+
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+app.use('/components', (req, res, next) => {
+  console.log(`[LOG] ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 app.use('/components', componentRoutes);
 
