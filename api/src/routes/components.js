@@ -124,7 +124,7 @@ router.post('/', async (req, res, next) => {
     res.status(201).json(dbRecordToComponent(data));
   } catch (error) {
     console.error('[Components][POST] Erro:', error);
-    next(error);
+    res.status(500).json({ error: error.message || 'Erro interno' });
   }
 });
 
