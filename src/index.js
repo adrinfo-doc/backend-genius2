@@ -23,6 +23,12 @@ app.use('/components', (req, res, next) => {
   next();
 });
 
+app.get('/debug', (req, res) => {
+  console.log('[DEBUG] /debug foi chamada');
+  res.status(200).json({ msg: 'Debug route funcionando' });
+});
+
+
 app.use(componentRoutes);
 
 app.use((err, req, res, next) => {
