@@ -3,6 +3,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+console.log('SUPABASE_URL:', process.env.SUPABASE_URL);
+console.log('SUPABASE_SERVICE_KEY:', process.env.SUPABASE_SERVICE_KEY);
+
+
 const supabaseUrl = process.env.SUPABASE_URL;
 // IMPORTANT: This should be the SERVICE_ROLE_KEY from your Supabase project settings.
 // It's required for backend operations that need to bypass RLS policies.
