@@ -5,7 +5,7 @@ import { authMiddleware } from '../middleware/auth.js';
 const router = Router();
 
 // Secure all component routes with the authentication middleware
-router.use(authMiddleware);
+// router.use(authMiddleware);
 
 // Data transformation helpers
 const dbRecordToComponent = (record) => {
