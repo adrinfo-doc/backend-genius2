@@ -10,7 +10,7 @@ import cors from 'cors';
 const app = express();
 
 app.use(cors({
-  origin: 'https://4wpbqj0ajxceczdvqbi6p7gl1t2uzvippizlgy5q064lxlt82l-h775241406.scf.usercontent.goog'
+  origin: '*'
 }));
 
 // Middlewares padrão
