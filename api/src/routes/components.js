@@ -4,197 +4,170 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
-// Secure all component routes with the authentication middleware
+// Se quiser, pode proteger as rotas ativando o middleware
 // router.use(authMiddleware);
 
-// Data transformation helpers
 const dbRecordToComponent = (record) => {
-    let htmlCode = '';
-    let language = 'html';
+  let htmlCode = '';
+  let language = 'html';
 
-    if (record.js) {
-        htmlCode = record.js;
-        language = 'p5js';
-    } else {
-        htmlCode = record.html || '';
-        if (record.css) {
-            htmlCode = `<style>\\n${record.css}\\n</style>\\n${htmlCode}`;
-        }
+  if (record.js) {
+    htmlCode = record.js;
+    language = 'p5js';
+  } else {
+    htmlCode = record.html || '';
+    if (record.css) {
+      htmlCode = `<style>\n${record.css}\n</style>\n${htmlCode}`;
     }
+  }
 
-    return {
-        id: record.id,
-        title: record.nome,
-        htmlCode: htmlCode,
-        reasoning: record.descricao,
-        type: record.tipo,
-        category: record.grupo,
-        language,
-        source: 'user', // Assuming all DB records are user-editable for now
-        editable: true,
-        tags: record.tags,
-    };
+  return {
+    id: record.id,
+    title: record.nome,
+    htmlCode,
+    reasoning: record.descricao,
+    type: record.tipo,
+    category: record.grupo,
+    language,
+    source: 'user',
+    editable: true,
+    tags: record.tags,
+  };
 };
 
 const componentToDbRecord = (component) => {
-    let html = '';
-    let css = '';
-    let js = '';
+  let html = '';
+  let css = '';
+  let js = '';
 
-    if (component.language === 'p5js') {
-        js = component.htmlCode;
-    } else {
-        const styleMatch = component.htmlCode.match(/<style>([\s\S]*?)<\/style>/);
-        css = styleMatch ? styleMatch[1].trim() : '';
-        html = component.htmlCode.replace(/<style>[\s\S]*?<\/style>/, '').trim();
-    }
+  if (component.language === 'p5js') {
+    js = component.htmlCode;
+  } else {
+    const styleMatch = component.htmlCode.match(/<style>([\s\S]*?)<\/style>/);
+    css = styleMatch ? styleMatch[1].trim() : '';
+    html = component.htmlCode.replace(/<style>[\s\S]*?<\/style>/, '').trim();
+  }
 
-    const record = {
-        nome: component.title,
-        grupo: component.category,
-        descricao: component.reasoning,
-        tipo: component.type,
-        tags: component.tags || [],
-        html,
-        css,
-        js,
-        favorito: component.favorito || false,
-    };
-    
-    // Only include ID for updates, not for inserts
-    if (component.id) {
-        record.id = component.id;
-    }
+  const record = {
+    nome: component.title || component.nome,
+    grupo: component.category || component.grupo,
+    descricao: component.reasoning || component.descricao || '',
+    tipo: component.type || component.tipo,
+    tags: component.tags || [],
+    html,
+    css,
+    js,
+    favorito: component.favorito || false,
+  };
 
-    return record;
+  if (component.id) record.id = component.id;
+
+  return record;
 };
 
-
-// GET /api/components - List all components with optional filters
+// GET /api/components
 router.get('/', async (req, res, next) => {
-    try {
-        console.log('[Components][GET] Buscando componentes com filtros:', req.query);
-        let query = supabase.from('componentes').select('*').order('criado_em', { ascending: false });
+  console.log('[Components][GET] Requisição com filtros:', req.query);
+  try {
+    let query = supabase.from('componentes').select('*').order('criado_em', { ascending: false });
 
-        // Filtering logic
-        if (req.query.tags) {
-            const tags = req.query.tags.split(',');
-            query = query.contains('tags', tags);
-        }
-        if (req.query.grupo) {
-            query = query.eq('grupo', req.query.grupo);
-        }
-        if (req.query.tipo) {
-            query = query.eq('tipo', req.query.tipo);
-        }
-
-        const { data, error } = await query;
-        if (error) throw error;
-
-        console.log(`[Components][GET] Encontrados ${data.length} componentes.`);
-        res.json(data.map(dbRecordToComponent));
-    } catch (error) {
-        next(error);
+    if (req.query.tags) {
+      const tags = req.query.tags.split(',');
+      query = query.contains('tags', tags);
     }
+    if (req.query.grupo) {
+      query = query.eq('grupo', req.query.grupo);
+    }
+    if (req.query.tipo) {
+      query = query.eq('tipo', req.query.tipo);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    console.log(`[Components][GET] Encontrados ${data.length} componentes.`);
+    res.json(data.map(dbRecordToComponent));
+  } catch (error) {
+    console.error('[Components][GET] Erro:', error);
+    next(error);
+  }
 });
 
-// POST /api/components - Create a new component
+// POST /api/components
 router.post('/', async (req, res, next) => {
-    try {
-        console.log('[Components][POST] Criando novo componente');
-        const componentData = req.body;
-        console.warn('[Backend] Received request to create new component.');
+  console.log('[Components][POST] Criando componente');
+  try {
+    const componentData = req.body;
+    let dbRecord;
 
-        let dbRecord;
-        // Case 1: From AI generator or modal editor (has htmlCode)
-        if (componentData.htmlCode) {
-            console.warn('[Backend] Creating component from htmlCode blob.');
-            const { id, ...componentToCreate } = componentData;
-            dbRecord = componentToDbRecord(componentToCreate);
-        } 
-        // Case 2: From new HTML Element creator (has separate fields)
-        else {
-            console.warn('[Backend] Creating component from separate html/css/js fields.');
-            dbRecord = {
-                nome: componentData.nome,
-                grupo: componentData.grupo,
-                descricao: componentData.descricao || '',
-                tipo: componentData.tipo,
-                tags: componentData.tags || [],
-                html: componentData.html || '',
-                css: componentData.css || '',
-                js: componentData.js || '',
-                favorito: false,
-            };
-        }
-        
-        console.warn('[Backend] Processing component data:', { 
-            nome: dbRecord.nome, 
-            grupo: dbRecord.grupo, 
-            tipo: dbRecord.tipo, 
-            tags: dbRecord.tags 
-        });
-        
-        const { data, error } = await supabase
-            .from('componentes')
-            .insert(dbRecord)
-            .select()
-            .single();
-
-        if (error) throw error;
-        
-        console.warn(`[Backend] Component saved successfully with ID: ${data.id}`);
-        res.status(201).json(dbRecordToComponent(data));
-    } catch (error) {
-        console.error('[Backend] Error creating component:', error);
-        next(error);
+    if (componentData.htmlCode) {
+      const { id, ...rest } = componentData;
+      dbRecord = componentToDbRecord(rest);
+    } else {
+      dbRecord = {
+        nome: componentData.nome,
+        grupo: componentData.grupo,
+        descricao: componentData.descricao || '',
+        tipo: componentData.tipo,
+        tags: componentData.tags || [],
+        html: componentData.html || '',
+        css: componentData.css || '',
+        js: componentData.js || '',
+        favorito: false,
+      };
     }
+
+    const { data, error } = await supabase.from('componentes').insert(dbRecord).select().single();
+    if (error) throw error;
+
+    console.log(`[Components][POST] Componente criado com ID: ${data.id}`);
+    res.status(201).json(dbRecordToComponent(data));
+  } catch (error) {
+    console.error('[Components][POST] Erro:', error);
+    next(error);
+  }
 });
 
-// PUT /api/components/:id - Update an existing component
+// PUT /api/components/:id
 router.put('/:id', async (req, res, next) => {
-    try {
-        console.log(`[Components][PUT] Atualizando componente ID: ${req.params.id}`);
-        const { id } = req.params;
-        const componentData = req.body;
-        const dbRecord = componentToDbRecord(componentData);
-        
-        const { data, error } = await supabase
-            .from('componentes')
-            .update(dbRecord)
-            .eq('id', id)
-            .select()
-            .single();
-            
-        if (error) throw error;
+  const { id } = req.params;
+  console.log(`[Components][PUT] Atualizando componente ID: ${id}`);
 
-        console.log(`[Components][PUT] Componente atualizado ID: ${data.id}`);
-        res.json(dbRecordToComponent(data));
-    } catch (error) {
-        next(error);
-    }
+  try {
+    const dbRecord = componentToDbRecord(req.body);
+    const { data, error } = await supabase.from('componentes').update(dbRecord).eq('id', id).select().single();
+    if (error) throw error;
+
+    console.log(`[Components][PUT] Componente atualizado ID: ${data.id}`);
+    res.json(dbRecordToComponent(data));
+  } catch (error) {
+    console.error(`[Components][PUT] Erro:`, error);
+    next(error);
+  }
 });
 
-// DELETE /api/components/:id - Delete a component
+// DELETE /api/components/:id
 router.delete('/:id', async (req, res, next) => {
-    try {
-        console.log(`[Components][DELETE] Excluindo componente ID: ${req.params.id}`);
-        const { id } = req.params;
-        const { error } = await supabase.from('componentes').delete().match({ id });
+  const { id } = req.params;
+  console.log(`[Components][DELETE] Deletando componente ID: ${id}`);
 
-        if (error) throw error;
-        
-        res.status(204).send(); // No content
-    } catch (error) {
-        next(error);
-    }
+  try {
+    const { error } = await supabase.from('componentes').delete().eq('id', id);
+    if (error) throw error;
+
+    console.log(`[Components][DELETE] Componente deletado ID: ${id}`);
+    res.status(204).send();
+  } catch (error) {
+    console.error(`[Components][DELETE] Erro:`, error);
+    next(error);
+  }
 });
 
-// GET /api/components/:id/similar - (Placeholder)
+// GET /api/components/:id/similar (placeholder)
 router.get('/:id/similar', (req, res) => {
-    const { id } = req.params;
-    res.status(501).json({ message: `Similarity search for component ${id} is not implemented yet.` });
+  const { id } = req.params;
+  console.log(`[Components][GET] Similaridade para componente ID: ${id} (não implementado)`);
+  res.status(501).json({ message: `Busca por similaridade para componente ${id} não implementada.` });
 });
-
 
 export default router;
