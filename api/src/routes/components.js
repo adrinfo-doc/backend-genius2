@@ -31,7 +31,7 @@ const validateComponent = (req, res, next) => {
   next();
 };
 
-// GET / - lista todos componentes
+// GET / - lista todos componentes, com mapeamento e logs detalhados
 router.get('/', async (req, res) => {
   try {
     log('[Components][GET] Buscando componentes...');
@@ -42,14 +42,36 @@ router.get('/', async (req, res) => {
       return res.status(500).json({ error: 'Erro ao buscar dados no banco', details: error.message || error });
     }
 
-    res.status(200).json(data);
+    log(`[Components][GET] Encontrados ${data.length} componentes brutos`);
+
+    const mappedComponents = data.map(record => {
+      const htmlLength = (record.html || '').length;
+      log(`[Component ${record.id}] html length: ${htmlLength}`);
+      return {
+        id: record.id,
+        title: record.nome || 'Untitled Component',
+        htmlCode: record.html || '',
+        reasoning: record.descricao || '',
+        type: ['block', 'template'].includes(record.tipo) ? record.tipo : 'block',
+        category: record.grupo || 'other',
+        language: record.language || 'html',
+        source: 'user',
+        editable: true,
+        tags: record.tags || [],
+        favorito: record.favorito || false,
+      };
+    });
+
+    log('[Components][GET] Enviando componentes mapeados para frontend:', JSON.stringify(mappedComponents, null, 2));
+
+    res.status(200).json(mappedComponents);
   } catch (err) {
     log('[Components][GET] Erro inesperado:', err);
     res.status(500).json({ error: 'Erro interno no servidor', message: err.message });
   }
 });
 
-// POST / - cria um componente novo
+// POST / - cria um componente novo com validação e logs detalhados
 router.post('/', validateComponent, async (req, res) => {
   try {
     const {
